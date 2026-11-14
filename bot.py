@@ -3,6 +3,9 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
 import time
+import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib3
 import requests
 import telebot
@@ -11,6 +14,27 @@ from telebot import types
 # Insecure Request warnings বন্ধ করার জন্য
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# ---------- Render পোর্টের জন্য ডামি HTTP সার্ভার ----------
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot is alive")
+
+    def log_message(self, format, *args):
+        pass  # Render-এর লগ পরিষ্কার রাখতে
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    logging.info(f"Health server listening on port {port}")
+    server.serve_forever()
+
+threading.Thread(target=start_health_server, daemon=True).start()
+# ----------------------------------------------------------
+
+# ... আপনার বাকি কোড (bot = telebot.TeleBot(...), হ্যান্ডলার ইত্যাদি) ...
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
